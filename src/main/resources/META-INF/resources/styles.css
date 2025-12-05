@@ -1,1 +1,139 @@
 /* Add your styles here */
+
+/* Import Cinzel Decorative font from Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&display=swap');
+
+/* Import Orbitron font for digital display look */
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@900&display=swap');
+
+/* Dark black marble background */
+.marble-background {
+    background-color: #111111;
+    transition: background-color 0.5s ease;
+}
+
+/* Winner flash animation */
+.marble-background.winner-flash {
+    animation: flash-red 2s ease-in-out 4;
+}
+
+@keyframes flash-red {
+    0%, 100% {
+        background-color: #111111;
+    }
+    50% {
+        background-color: #660000;
+    }
+}
+
+/* Original marble background */
+.marble-background {
+    background-color: #111111;
+    background-image:
+        /* Diagonal white veins */
+        linear-gradient(135deg, transparent 40%, rgba(255, 255, 255, 0.08) 41%, rgba(255, 255, 255, 0.08) 43%, transparent 44%),
+        linear-gradient(45deg, transparent 45%, rgba(255, 255, 255, 0.06) 46%, rgba(255, 255, 255, 0.06) 48%, transparent 49%),
+        /* Softer diagonal veins */
+        linear-gradient(125deg, transparent 30%, rgba(200, 200, 200, 0.05) 31%, rgba(200, 200, 200, 0.05) 34%, transparent 35%),
+        linear-gradient(55deg, transparent 60%, rgba(180, 180, 180, 0.04) 61%, rgba(180, 180, 180, 0.04) 63%, transparent 64%),
+        /* Scattered marble clouds */
+        radial-gradient(ellipse at 25% 25%, rgba(150, 150, 150, 0.06) 0%, transparent 40%),
+        radial-gradient(ellipse at 75% 75%, rgba(140, 140, 140, 0.05) 0%, transparent 45%),
+        radial-gradient(ellipse at 50% 80%, rgba(130, 130, 130, 0.04) 0%, transparent 35%),
+        /* Fine grain texture */
+        repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.01) 0px, rgba(255, 255, 255, 0.01) 1px, transparent 1px, transparent 2px);
+    background-size:
+        600px 400px,
+        700px 500px,
+        500px 600px,
+        800px 400px,
+        400px 300px,
+        500px 400px,
+        450px 350px,
+        2px 2px;
+    background-position:
+        0 0,
+        100px 100px,
+        200px 50px,
+        50px 200px,
+        0 0,
+        100% 100%,
+        50% 50%,
+        0 0;
+}
+
+/* Large row styling - makes rows about 2/3 of screen height */
+.large-rows {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.large-rows::part(row) {
+    min-height: 66vh;
+    background: transparent;
+}
+
+.large-rows::part(cell) {
+    font-size: 40vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    text-align: center;
+}
+
+/* Hide grid header for large-rows grids */
+.large-rows::part(header-row) {
+    display: none;
+}
+
+/* Digital display cash counter */
+.cash-display {
+    font-family: 'Orbitron', monospace;
+    font-weight: 900;
+    font-size: 3rem;
+    color: #ff0000;
+    text-align: center;
+    letter-spacing: 0.2em;
+    text-shadow: 0 0 10px rgba(255, 0, 0, 0.8),
+                 0 0 20px rgba(255, 0, 0, 0.5);
+}
+
+/* Fire text effect */
+.fire-text {
+    background: linear-gradient(180deg, #ff0000 0%, #ff6600 25%, #ffcc00 50%, #ff6600 75%, #ff0000 100%);
+    background-size: 100% 400%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: fire-animation 3s ease-in-out infinite;
+    filter: drop-shadow(0 0 10px rgba(255, 100, 0, 0.8))
+            drop-shadow(0 0 20px rgba(255, 60, 0, 0.6))
+            drop-shadow(0 0 30px rgba(255, 0, 0, 0.4));
+}
+
+@keyframes fire-animation {
+    0%, 100% {
+        background-position: 0% 0%;
+        filter: drop-shadow(0 0 10px rgba(255, 100, 0, 0.8))
+                drop-shadow(0 0 20px rgba(255, 60, 0, 0.6))
+                drop-shadow(0 0 30px rgba(255, 0, 0, 0.4));
+    }
+    25% {
+        background-position: 0% 50%;
+        filter: drop-shadow(0 0 15px rgba(255, 120, 0, 0.9))
+                drop-shadow(0 0 25px rgba(255, 80, 0, 0.7))
+                drop-shadow(0 0 35px rgba(255, 40, 0, 0.5));
+    }
+    50% {
+        background-position: 0% 100%;
+        filter: drop-shadow(0 0 20px rgba(255, 140, 0, 1))
+                drop-shadow(0 0 30px rgba(255, 100, 0, 0.8))
+                drop-shadow(0 0 40px rgba(255, 60, 0, 0.6));
+    }
+    75% {
+        background-position: 0% 50%;
+        filter: drop-shadow(0 0 15px rgba(255, 120, 0, 0.9))
+                drop-shadow(0 0 25px rgba(255, 80, 0, 0.7))
+                drop-shadow(0 0 35px rgba(255, 40, 0, 0.5));
+    }
+}
