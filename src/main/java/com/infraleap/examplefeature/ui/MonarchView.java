@@ -10,6 +10,7 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.Route;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -149,6 +150,6 @@ public class MonarchView extends VerticalLayout {
 
     private void updateCashDisplay() {
         double dollars = cashInCents / 100.0;
-        cashDisplay.setText(String.format("%.2f $", dollars));
+        cashDisplay.setText(String.format(Locale.US, "$%.2f", dollars));
     }
 }
