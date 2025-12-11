@@ -9,6 +9,7 @@ import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.Route;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.Executors;
@@ -19,6 +20,9 @@ import java.util.concurrent.TimeUnit;
 public class MonarchView extends VerticalLayout {
 
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+
+    private final String[] smileys = {"😀", "😁", "😂", "😅", "😆", "😉", "😊"};
+    private boolean isAnimating = false;
 
     private int cashInCents = 10000;
     private final Span cashDisplay = new Span();
@@ -41,7 +45,6 @@ public class MonarchView extends VerticalLayout {
         gridsLayout.setHeight("66vh"); // 2/3 of the screen height
         gridsLayout.setDefaultVerticalComponentAlignment(FlexComponent.Alignment.STRETCH);
 
-        String[] smileys = {"😀", "😁", "😂", "😅", "😆", "😉", "😊"};
         Grid<String> grid1 = createSmileyGrid(List.of(smileys));
         Grid<String> grid2 = createSmileyGrid(List.of(smileys));
         Grid<String> grid3 = createSmileyGrid(List.of(smileys));
@@ -71,41 +74,49 @@ public class MonarchView extends VerticalLayout {
 
                 // Play the game if there's enough cash
                 if (cashInCents >= 20) {
+                    // Skip if previous animation still running
+                    if (isAnimating) {
+                        return;
+                    }
+
                     cashInCents -= 20;
-                    for (Grid<String> grid : grids) {
+                    isAnimating = true;
+
+                    // Store selected smileys for winner detection
+                    final String[] selectedSmileys = new String[3];
+
+                    for (int i = 0; i < grids.length; i++) {
+                        Grid<String> grid = grids[i];
                         int index = (int) (Math.random() * smileys.length);
                         String selectedSmiley = smileys[index];
-                        grid.select(selectedSmiley);
-                        grid.scrollToItem(selectedSmiley);
+                        selectedSmileys[i] = selectedSmiley;
+
+                        // Don't call select() - Grid auto-scrolls to selected items which interferes with animation
+                        animateGridSpin(grid, selectedSmiley, i);
                     }
 
-                    String potentialWinner = null;
-                    for (Grid<String> grid : grids) {
-                        if (potentialWinner == null) {
-                            potentialWinner = grid.getSelectedItems().iterator().next();
-                        } else {
-                            String currentSelection = grid.getSelectedItems().iterator().next();
-                            if (!potentialWinner.equals(currentSelection)) {
-                                potentialWinner = null;
-                                break;
+                    // Schedule winner detection after animations complete
+                    scheduler.schedule(() -> {
+                        ui.access(() -> {
+                            isAnimating = false;
+
+                            // Check if all three match
+                            if (selectedSmileys[0].equals(selectedSmileys[1]) &&
+                                selectedSmileys[1].equals(selectedSmileys[2])) {
+                                cashInCents += 2500;
+                                System.out.println("We have a WINNER! Smiley: " + selectedSmileys[0] + ", New Cash: " + cashInCents + " cents");
+                                updateCashDisplay();
+                                addClassName("winner-flash");
+                                skipRounds = 8;
+                            } else {
+                                System.out.println("No winner this round. Cash remaining: " + cashInCents + " cents");
+                                updateCashDisplay();
                             }
-                        }
-                    }
-                    if (potentialWinner != null) {
-                        cashInCents += 2500;
-                        System.out.println("We have a WINNER! Smiley: " + potentialWinner + ", New Cash: " + cashInCents + " cents");
-                        updateCashDisplay();
-
-                        // Trigger winner flash animation and skip next 8 rounds
-                        addClassName("winner-flash");
-                        skipRounds = 8;
-                    } else {
-                        System.out.println("No winner this round. Cash remaining: " + cashInCents + " cents");
-                        updateCashDisplay();
-                    }
+                        });
+                    }, 1600, TimeUnit.MILLISECONDS); // Wait for longest animation (1400ms) + buffer
                 }
             });
-        }, 1, 1, TimeUnit.SECONDS);
+        }, 4, 4, TimeUnit.SECONDS); // Spin every 4 seconds to allow time to see the animation
 
         // Cleanup scheduler when component is detached
         addDetachListener(event -> {
@@ -121,6 +132,89 @@ public class MonarchView extends VerticalLayout {
         });
     }
 
+    private void animateGridSpin(Grid<String> grid, String targetSmiley, int gridIndex) {
+        int targetIndex = Arrays.asList(smileys).indexOf(targetSmiley);
+
+        grid.getElement().executeJs(
+            // JavaScript animation code
+            "const grid = this; " +
+            "const targetIndex = $0; " +
+            "const gridIndex = $1; " +
+
+            // Independent timing based on grid index
+            "const spinDuration = 800 + (gridIndex * 300); " + // 800ms, 1100ms, 1400ms
+            "const spinCycles = 3 + gridIndex; " + // 3, 4, 5 full cycles
+
+            "const table = grid.shadowRoot.getElementById('table'); " +
+            "if (!table) { console.error('Table not found'); return; } " +
+
+            // Calculate actual row height from first row (try multiple selectors)
+            "let firstRow = table.querySelector('tbody tr'); " +
+            "if (!firstRow) firstRow = table.querySelector('tr'); " +
+            "if (!firstRow) { " +
+            "  console.error('No rows found in table'); " +
+            "  console.log('Table HTML:', table.innerHTML.substring(0, 500)); " +
+            "  return; " +
+            "} " +
+            "const itemHeight = firstRow.offsetHeight; " +
+            "console.log('Row height:', itemHeight, 'px', 'Row:', firstRow); " +
+
+            // Enable scrolling and hide scrollbars
+            "table.style.overflow = 'auto'; " +
+            "table.style.scrollbarWidth = 'none'; " + // Firefox
+            "table.style.msOverflowStyle = 'none'; " + // IE/Edge
+            // Inject WebKit scrollbar hiding if not already present
+            "if (!grid.shadowRoot.querySelector('#webkit-scrollbar-hide')) { " +
+            "  const style = document.createElement('style'); " +
+            "  style.id = 'webkit-scrollbar-hide'; " +
+            "  style.textContent = '#table::-webkit-scrollbar { display: none !important; }'; " +
+            "  grid.shadowRoot.appendChild(style); " +
+            "} " +
+            "console.log('Overflow set to auto, scrollHeight:', table.scrollHeight); " +
+
+            "const startTime = Date.now(); " +
+            "const totalItems = 7; " +
+            "const maxScroll = table.scrollHeight - table.offsetHeight; " +
+            "console.log('maxScroll:', maxScroll, 'itemHeight:', itemHeight); " +
+
+            // Calculate total distance to travel (with cycles)
+            // Use maxScroll for cycles to match wrapping behavior
+            "const targetFinalIndex = targetIndex; " +
+            "const totalDistance = (spinCycles * maxScroll) + (targetFinalIndex * itemHeight); " +
+            "console.log('Total distance to travel:', totalDistance, 'cycles:', spinCycles); " +
+
+            // Easing function (ease-in-out-cubic) - starts slow, fast in middle, ends slow
+            "function easeInOutCubic(t) { " +
+            "  return t < 0.5 " +
+            "    ? 4 * t * t * t " + // Ease in (accelerate)
+            "    : 1 - Math.pow(-2 * t + 2, 3) / 2; " + // Ease out (decelerate)
+            "} " +
+
+            // Animation loop with wrapping
+            "function animate() { " +
+            "  const elapsed = Date.now() - startTime; " +
+            "  const progress = Math.min(elapsed / spinDuration, 1); " +
+            "  const easedProgress = easeInOutCubic(progress); " +
+            "  " +
+            "  const virtualScroll = totalDistance * easedProgress; " + // Calculate position in virtual scroll space
+            "  const wrappedScroll = virtualScroll % maxScroll; " + // Wrap to actual scrollable range
+            "  " +
+            "  table.scrollTop = wrappedScroll; " +
+            "  " +
+            "  if (progress < 1) { " +
+            "    requestAnimationFrame(animate); " +
+            "  } else { " +
+            "    table.scrollTop = targetFinalIndex * itemHeight; " + // Final position - no modulo needed
+            "    console.log('Animation complete, final scroll:', table.scrollTop); " +
+            "  } " +
+            "} " +
+            "" +
+            "requestAnimationFrame(animate);",
+            targetIndex,
+            gridIndex
+        );
+    }
+
     private Grid<String> createSmileyGrid(List<String> smileys) {
         Grid<String> grid = new Grid<>();
         grid.setItems(smileys);
@@ -129,19 +223,23 @@ public class MonarchView extends VerticalLayout {
         grid.setWidth("33%");
         grid.addClassName("large-rows");
 
-        // Hide scrollbars after grid is attached and rendered
+        // Hide scrollbars but allow scrolling - apply immediately on attach
         grid.addAttachListener(event -> {
             grid.getElement().executeJs(
-                "setTimeout(() => { " +
-                "  const table = this.shadowRoot.getElementById('table'); " +
-                "  console.log('Table element:', table); " +
-                "  if (table) { " +
-                "    table.style.overflow = 'hidden'; " +
-                "    console.log('Overflow set to hidden'); " +
-                "  } else { " +
-                "    console.error('Table element not found in shadow DOM'); " +
+                "const grid = this; " +
+                "const table = grid.shadowRoot.getElementById('table'); " +
+                "if (table) { " +
+                "  table.style.overflow = 'auto'; " +
+                "  table.style.scrollbarWidth = 'none'; " + // Firefox
+                "  table.style.msOverflowStyle = 'none'; " + // IE/Edge
+                "  if (!grid.shadowRoot.querySelector('#initial-scrollbar-hide')) { " +
+                "    const style = document.createElement('style'); " +
+                "    style.id = 'initial-scrollbar-hide'; " +
+                "    style.textContent = '#table::-webkit-scrollbar { display: none !important; }'; " +
+                "    grid.shadowRoot.appendChild(style); " +
                 "  } " +
-                "}, 200)"
+                "  console.log('Initial scrollbar hiding applied'); " +
+                "}"
             );
         });
 
