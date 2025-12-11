@@ -107,7 +107,7 @@ public class MonarchView extends VerticalLayout {
                                 System.out.println("We have a WINNER! Smiley: " + selectedSmileys[0] + ", New Cash: " + cashInCents + " cents");
                                 updateCashDisplay();
                                 addClassName("winner-flash");
-                                skipRounds = 8;
+                                skipRounds = 3;
                             } else {
                                 System.out.println("No winner this round. Cash remaining: " + cashInCents + " cents");
                                 updateCashDisplay();
