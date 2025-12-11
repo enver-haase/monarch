@@ -113,7 +113,7 @@ public class MonarchView extends VerticalLayout {
                                 updateCashDisplay();
                             }
                         });
-                    }, 1600, TimeUnit.MILLISECONDS); // Wait for longest animation (1400ms) + buffer
+                    }, 2500, TimeUnit.MILLISECONDS); // Wait for longest animation (2300ms) + buffer
                 }
             });
         }, 4, 4, TimeUnit.SECONDS); // Spin every 4 seconds to allow time to see the animation
@@ -136,76 +136,63 @@ public class MonarchView extends VerticalLayout {
         int targetIndex = Arrays.asList(smileys).indexOf(targetSmiley);
 
         grid.getElement().executeJs(
-            // JavaScript animation code
+            // JavaScript animation code - simple scroll to target
             "const grid = this; " +
             "const targetIndex = $0; " +
             "const gridIndex = $1; " +
 
-            // Independent timing based on grid index
-            "const spinDuration = 800 + (gridIndex * 300); " + // 800ms, 1100ms, 1400ms
-            "const spinCycles = 3 + gridIndex; " + // 3, 4, 5 full cycles
-
             "const table = grid.shadowRoot.getElementById('table'); " +
             "if (!table) { console.error('Table not found'); return; } " +
 
-            // Calculate actual row height from first row (try multiple selectors)
+            // Calculate actual row height
             "let firstRow = table.querySelector('tbody tr'); " +
             "if (!firstRow) firstRow = table.querySelector('tr'); " +
             "if (!firstRow) { " +
             "  console.error('No rows found in table'); " +
-            "  console.log('Table HTML:', table.innerHTML.substring(0, 500)); " +
             "  return; " +
             "} " +
             "const itemHeight = firstRow.offsetHeight; " +
-            "console.log('Row height:', itemHeight, 'px', 'Row:', firstRow); " +
 
             // Enable scrolling and hide scrollbars
             "table.style.overflow = 'auto'; " +
-            "table.style.scrollbarWidth = 'none'; " + // Firefox
-            "table.style.msOverflowStyle = 'none'; " + // IE/Edge
-            // Inject WebKit scrollbar hiding if not already present
+            "table.style.scrollbarWidth = 'none'; " +
+            "table.style.msOverflowStyle = 'none'; " +
             "if (!grid.shadowRoot.querySelector('#webkit-scrollbar-hide')) { " +
             "  const style = document.createElement('style'); " +
             "  style.id = 'webkit-scrollbar-hide'; " +
             "  style.textContent = '#table::-webkit-scrollbar { display: none !important; }'; " +
             "  grid.shadowRoot.appendChild(style); " +
             "} " +
-            "console.log('Overflow set to auto, scrollHeight:', table.scrollHeight); " +
 
+            // Animation parameters - slower and staggered by grid
+            "const animDuration = 1500 + (gridIndex * 400); " + // 1500ms, 1900ms, 2300ms
             "const startTime = Date.now(); " +
-            "const totalItems = 7; " +
-            "const maxScroll = table.scrollHeight - table.offsetHeight; " +
-            "console.log('maxScroll:', maxScroll, 'itemHeight:', itemHeight); " +
+            "const startScrollPos = table.scrollTop; " +
+            "const targetScrollPos = targetIndex * itemHeight; " +
+            "const scrollDistance = targetScrollPos - startScrollPos; " +
 
-            // Calculate total distance to travel (with cycles)
-            // Use maxScroll for cycles to match wrapping behavior
-            "const targetFinalIndex = targetIndex; " +
-            "const totalDistance = (spinCycles * maxScroll) + (targetFinalIndex * itemHeight); " +
-            "console.log('Total distance to travel:', totalDistance, 'cycles:', spinCycles); " +
+            "console.log('Animating grid', gridIndex, 'from', startScrollPos, 'to', targetScrollPos); " +
 
-            // Easing function (ease-in-out-cubic) - starts slow, fast in middle, ends slow
+            // Ease-in-out function for smooth animation
             "function easeInOutCubic(t) { " +
             "  return t < 0.5 " +
-            "    ? 4 * t * t * t " + // Ease in (accelerate)
-            "    : 1 - Math.pow(-2 * t + 2, 3) / 2; " + // Ease out (decelerate)
+            "    ? 4 * t * t * t " +
+            "    : 1 - Math.pow(-2 * t + 2, 3) / 2; " +
             "} " +
 
-            // Animation loop with wrapping
+            // Simple animation from current position to target
             "function animate() { " +
             "  const elapsed = Date.now() - startTime; " +
-            "  const progress = Math.min(elapsed / spinDuration, 1); " +
+            "  const progress = Math.min(elapsed / animDuration, 1); " +
             "  const easedProgress = easeInOutCubic(progress); " +
             "  " +
-            "  const virtualScroll = totalDistance * easedProgress; " + // Calculate position in virtual scroll space
-            "  const wrappedScroll = virtualScroll % maxScroll; " + // Wrap to actual scrollable range
-            "  " +
-            "  table.scrollTop = wrappedScroll; " +
+            "  table.scrollTop = startScrollPos + (scrollDistance * easedProgress); " +
             "  " +
             "  if (progress < 1) { " +
             "    requestAnimationFrame(animate); " +
             "  } else { " +
-            "    table.scrollTop = targetFinalIndex * itemHeight; " + // Final position - no modulo needed
-            "    console.log('Animation complete, final scroll:', table.scrollTop); " +
+            "    table.scrollTop = targetScrollPos; " +
+            "    console.log('Animation complete at position:', table.scrollTop); " +
             "  } " +
             "} " +
             "" +
